@@ -18,15 +18,22 @@ package com.pinterest.secor.common;
 
 import com.pinterest.secor.util.FileUtil;
 import com.pinterest.secor.util.StatsUtil;
+import org.apache.avro.Schema;
+import org.apache.avro.file.DataFileWriter;
+import org.apache.avro.generic.GenericDatumWriter;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.DatumWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
@@ -40,12 +47,23 @@ public class FileRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(FileRegistry.class);
 
     private HashMap<TopicPartition, HashSet<LogFilePath>> mFiles;
-    private HashMap<LogFilePath, SequenceFile.Writer> mWriters;
+    private HashMap<LogFilePath, DataFileWriter> mWriters;
     private HashMap<LogFilePath, Long> mCreationTimes;
+
+	public static final String SCHEMA = "{\"namespace\": \"example.avro\",\n" +
+			" \"type\": \"record\",\n" +
+			" \"name\": \"User\",\n" +
+			" \"fields\": [\n" +
+			"     {\"name\": \"name\", \"type\": \"string\"},\n" +
+			"     {\"name\": \"favorite_number\",  \"type\": [\"int\", \"null\"]},\n" +
+			"     {\"name\": \"favorite_color\", \"type\": [\"string\", \"null\"]}\n" +
+			" ]\n" +
+			"}\n" +
+			" ";
 
     public FileRegistry() {
         mFiles = new HashMap<TopicPartition, HashSet<LogFilePath>>();
-        mWriters = new HashMap<LogFilePath, SequenceFile.Writer>();
+        mWriters = new HashMap<LogFilePath, DataFileWriter>();
         mCreationTimes = new HashMap<LogFilePath, Long>();
     }
 
@@ -81,8 +99,8 @@ public class FileRegistry {
      * @return Writer for a given path.
      * @throws IOException
      */
-    public SequenceFile.Writer getOrCreateWriter(LogFilePath path) throws IOException {
-        SequenceFile.Writer writer = mWriters.get(path);
+    public DataFileWriter getOrCreateWriter(LogFilePath path) throws IOException {
+	    DataFileWriter writer = mWriters.get(path);
         if (writer == null) {
             // Just in case.
             FileUtil.delete(path.getLogFilePath());
@@ -94,14 +112,20 @@ public class FileRegistry {
                 files = new HashSet<LogFilePath>();
                 mFiles.put(topicPartition, files);
             }
+
+	        File file = new File(path.getLogFilePath());
+	        Schema schema = new Schema.Parser().parse(SCHEMA);
+	        DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<GenericRecord>(schema);
+	        writer = new DataFileWriter<GenericRecord>(datumWriter);
+
             if (!files.contains(path)) {
                 files.add(path);
+	            file.createNewFile();
+	            writer.create(schema, file);
+            } else {
+	            writer.appendTo(file);
             }
-            Configuration config = new Configuration();
-            Path fsPath = new Path(path.getLogFilePath());
-            FileSystem fs = FileSystem.get(config);
-            writer = SequenceFile.createWriter(fs, config, fsPath, LongWritable.class,
-                                               BytesWritable.class);
+
             mWriters.put(path, writer);
             mCreationTimes.put(path, System.currentTimeMillis() / 1000L);
             LOG.debug("created writer for path " + path.getLogFilePath());
@@ -152,7 +176,7 @@ public class FileRegistry {
      * @param path The path to remove the writer for.
      */
     public void deleteWriter(LogFilePath path) throws IOException {
-        SequenceFile.Writer writer = mWriters.get(path);
+	    DataFileWriter writer = mWriters.get(path);
         if (writer == null) {
             LOG.warn("No writer found for path " + path.getLogFilePath());
         } else {
@@ -190,9 +214,9 @@ public class FileRegistry {
         Collection<LogFilePath> paths = getPaths(topicPartition);
         long result = 0;
         for (LogFilePath path : paths) {
-            SequenceFile.Writer writer = mWriters.get(path);
-            if (writer != null) {
-                result += writer.getLength();
+	        File f = new File(path.getLogFilePath());
+            if (f.exists()) {
+                result += f.length();
             }
         }
         StatsUtil.setLabel("secor.size." + topicPartition.getTopic() + "." +

@@ -23,9 +23,11 @@ import com.pinterest.secor.message.ParsedMessage;
 import java.io.IOException;
 
 import com.pinterest.secor.util.IdUtil;
+import org.apache.avro.file.DataFileWriter;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,11 +72,9 @@ public class MessageWriter {
         long offset = mOffsetTracker.getAdjustedCommittedOffsetCount(topicPartition);
         String localPrefix = mConfig.getLocalPath() + '/' + IdUtil.getLocalMessageDir();
         LogFilePath path = new LogFilePath(localPrefix, mConfig.getGeneration(), offset, message);
-        LongWritable key = new LongWritable(message.getOffset());
-        BytesWritable value = new BytesWritable(message.getPayload());
-        SequenceFile.Writer writer = mFileRegistry.getOrCreateWriter(path);
-        writer.append(key, value);
-        LOG.debug("appended message " + message + " to file " + path.getLogFilePath() +
-                  ".  File length " + writer.getLength());
+        DataFileWriter writer = mFileRegistry.getOrCreateWriter(path);
+        writer.append(message.getPayload());
+        //LOG.debug("appended message " + message + " to file " + path.getLogFilePath() +
+        //          ".  File length " + writer.getLength());
     }
 }

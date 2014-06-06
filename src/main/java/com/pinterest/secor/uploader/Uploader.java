@@ -20,6 +20,12 @@ import com.pinterest.secor.common.*;
 import com.pinterest.secor.common.SecorConfig;
 import com.pinterest.secor.util.FileUtil;
 import com.pinterest.secor.util.IdUtil;
+import org.apache.avro.Schema;
+import org.apache.avro.file.DataFileReader;
+import org.apache.avro.file.DataFileWriter;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.DatumReader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -27,6 +33,7 @@ import org.apache.hadoop.io.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
@@ -100,9 +107,12 @@ public class Uploader {
     /**
      * This method is intended to be overwritten in tests.
      */
-    protected SequenceFile.Reader createReader(FileSystem fileSystem, Path path,
-                                               Configuration configuration) throws IOException {
-        return new SequenceFile.Reader(fileSystem, path, configuration);
+    protected DataFileReader createReader(LogFilePath logFilePath) throws IOException {
+
+	    Schema schema = new Schema.Parser().parse(FileRegistry.SCHEMA);
+	    DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>(schema);
+	    DataFileReader<GenericRecord> dataFileReader = new DataFileReader<GenericRecord>(new File(logFilePath.getLogFilePath()), datumReader);
+        return dataFileReader;
     }
 
     private void trim(LogFilePath srcPath, long startOffset) throws Exception {
@@ -113,18 +123,17 @@ public class Uploader {
         FileSystem fs = FileSystem.get(config);
         String srcFilename = srcPath.getLogFilePath();
         Path srcFsPath = new Path(srcFilename);
-        SequenceFile.Reader reader = null;
-        SequenceFile.Writer writer = null;
+        DataFileReader reader = null;
+        DataFileWriter writer = null;
         LogFilePath dstPath = null;
         int copiedMessages = 0;
         // Deleting the writer closes its stream flushing all pending data to the disk.
         mFileRegistry.deleteWriter(srcPath);
         try {
-            reader = createReader(fs, srcFsPath, config);
-            LongWritable key = (LongWritable) reader.getKeyClass().newInstance();
-            BytesWritable value = (BytesWritable) reader.getValueClass().newInstance();
-            while (reader.next(key, value)) {
-                if (key.get() >= startOffset) {
+            reader = createReader(srcPath);
+	        Object value = null;
+            while ((value = reader.next()) != null) {
+                //if (key.get() >= startOffset) {
                     if (writer == null) {
                         String localPrefix = mConfig.getLocalPath() + '/' +
                             IdUtil.getLocalMessageDir();
@@ -133,9 +142,9 @@ public class Uploader {
                                                   srcPath.getKafkaPartition(), startOffset);
                         writer = mFileRegistry.getOrCreateWriter(dstPath);
                     }
-                    writer.append(key, value);
+                    writer.append(value);
                     copiedMessages++;
-                }
+                //}
             }
         } finally {
             if (reader != null) {
