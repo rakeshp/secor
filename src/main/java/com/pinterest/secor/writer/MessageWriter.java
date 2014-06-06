@@ -23,7 +23,10 @@ import com.pinterest.secor.message.ParsedMessage;
 import java.io.IOException;
 
 import com.pinterest.secor.util.IdUtil;
+import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileWriter;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.SequenceFile;
@@ -73,8 +76,18 @@ public class MessageWriter {
         String localPrefix = mConfig.getLocalPath() + '/' + IdUtil.getLocalMessageDir();
         LogFilePath path = new LogFilePath(localPrefix, mConfig.getGeneration(), offset, message);
         DataFileWriter writer = mFileRegistry.getOrCreateWriter(path);
-        writer.append(message.getPayload());
+        writer.append(createRecord());
         //LOG.debug("appended message " + message + " to file " + path.getLogFilePath() +
         //          ".  File length " + writer.getLength());
     }
+
+	public static GenericRecord createRecord() throws IOException {
+		Schema schema = new Schema.Parser().parse(FileRegistry.SCHEMA);
+
+
+		GenericRecord user1 = new GenericData.Record(schema);
+		user1.put("name", "Alyssa");
+		user1.put("favorite_number", 256);
+		return  user1;
+	}
 }
