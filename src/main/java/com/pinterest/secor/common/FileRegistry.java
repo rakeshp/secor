@@ -120,6 +120,7 @@ public class FileRegistry {
 
             if (!files.contains(path)) {
                 files.add(path);
+	            file.getParentFile().mkdirs();
 	            file.createNewFile();
 	            writer.create(schema, file);
             } else {
