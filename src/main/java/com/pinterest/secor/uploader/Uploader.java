@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.NoSuchElementException;
 
 /**
  * Uploader applies a set of policies to determine if any of the locally stored files should be
@@ -107,9 +106,7 @@ public class Uploader {
 
 	    DatumReader<GenericRecord> datumReader =
 			    new GenericDatumReader<GenericRecord>(SchemaRepositoryUtil.getTopicSchema(logFilePath.getTopic()));
-	    DataFileReader<GenericRecord> dataFileReader =
-			    new DataFileReader<GenericRecord>(new File(logFilePath.getLogFilePath()), datumReader);
-        return dataFileReader;
+	    return new DataFileReader<GenericRecord>(new File(logFilePath.getLogFilePath()), datumReader);
     }
 
     private void trim(LogFilePath srcPath, long startOffset) throws Exception {
@@ -125,7 +122,7 @@ public class Uploader {
 	    mFileRegistry.deleteWriter(srcPath);
 	    try {
 		    reader = createReader(srcPath);
-		    while (true) {
+		    while (reader.hasNext()) {
 			    GenericRecord value = (GenericRecord) reader.next();
 			    Long messageOffset = (Long) value.get(SchemaRepositoryUtil.KAFKA_OFFSET);
 			    if (messageOffset != null && messageOffset >= startOffset) {
@@ -141,8 +138,6 @@ public class Uploader {
 				    copiedMessages++;
 			    }
 		    }
-	    } catch (NoSuchElementException e) {
-			//Thrown when no more elements are left to read in the file
 	    } finally {
 		    if (reader != null) {
 			    reader.close();
