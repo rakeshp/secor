@@ -18,25 +18,20 @@ package com.pinterest.secor.uploader;
 
 import com.pinterest.secor.avro.schema.repository.SchemaRepositoryUtil;
 import com.pinterest.secor.common.*;
-import com.pinterest.secor.common.SecorConfig;
 import com.pinterest.secor.util.FileUtil;
 import com.pinterest.secor.util.IdUtil;
-import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.NoSuchElementException;
 
 /**
  * Uploader applies a set of policies to determine if any of the locally stored files should be
@@ -118,41 +113,41 @@ public class Uploader {
     }
 
     private void trim(LogFilePath srcPath, long startOffset) throws Exception {
-        if (startOffset == srcPath.getOffset()) {
-            return;
-        }
-        Configuration config = new Configuration();
-        FileSystem fs = FileSystem.get(config);
-        String srcFilename = srcPath.getLogFilePath();
-        Path srcFsPath = new Path(srcFilename);
-        DataFileReader reader = null;
-        DataFileWriter writer = null;
-        LogFilePath dstPath = null;
-        int copiedMessages = 0;
-        // Deleting the writer closes its stream flushing all pending data to the disk.
-        mFileRegistry.deleteWriter(srcPath);
-        try {
-            reader = createReader(srcPath);
-	        Object value = null;
-            while ((value = reader.next()) != null) {
-                //if (key.get() >= startOffset) {
-                    if (writer == null) {
-                        String localPrefix = mConfig.getLocalPath() + '/' +
-                            IdUtil.getLocalMessageDir();
-                        dstPath = new LogFilePath(localPrefix, srcPath.getTopic(),
-                                                  srcPath.getPartitions(), srcPath.getGeneration(),
-                                                  srcPath.getKafkaPartition(), startOffset);
-                        writer = mFileRegistry.getOrCreateWriter(dstPath);
-                    }
-                    writer.append(value);
-                    copiedMessages++;
-                //}
-            }
-        } finally {
-            if (reader != null) {
-                reader.close();
-            }
-        }
+	    if (startOffset == srcPath.getOffset()) {
+		    return;
+	    }
+	    String srcFilename = srcPath.getLogFilePath();
+	    DataFileReader reader = null;
+	    DataFileWriter writer = null;
+	    LogFilePath dstPath = null;
+	    int copiedMessages = 0;
+	    // Deleting the writer closes its stream flushing all pending data to the disk.
+	    mFileRegistry.deleteWriter(srcPath);
+	    try {
+		    reader = createReader(srcPath);
+		    while (true) {
+			    GenericRecord value = (GenericRecord) reader.next();
+			    Long messageOffset = (Long) value.get(SchemaRepositoryUtil.KAFKA_OFFSET);
+			    if (messageOffset != null && messageOffset >= startOffset) {
+				    if (writer == null) {
+					    String localPrefix = mConfig.getLocalPath() + '/' +
+							    IdUtil.getLocalMessageDir();
+					    dstPath = new LogFilePath(localPrefix, srcPath.getTopic(),
+							    srcPath.getPartitions(), srcPath.getGeneration(),
+							    srcPath.getKafkaPartition(), startOffset);
+					    writer = mFileRegistry.getOrCreateWriter(dstPath);
+				    }
+				    writer.append(value);
+				    copiedMessages++;
+			    }
+		    }
+	    } catch (NoSuchElementException e) {
+			//Thrown when no more elements are left to read in the file
+	    } finally {
+		    if (reader != null) {
+			    reader.close();
+		    }
+	    }
         mFileRegistry.deletePath(srcPath);
         if (dstPath == null) {
             LOG.info("removed file " + srcPath.getLogFilePath());

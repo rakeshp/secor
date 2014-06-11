@@ -9,6 +9,7 @@ import org.apache.commons.lang.StringUtils;
  * Created by rakesh on 10/06/14.
  */
 public class SchemaRepositoryUtil {
+	public static final String KAFKA_OFFSET = "kafkaoffset";
 	private static SchemaRepository schemaRepository;
 
 	public static void init(SecorConfig secorConfig) throws Exception {

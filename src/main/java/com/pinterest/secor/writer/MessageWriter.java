@@ -92,6 +92,8 @@ public class MessageWriter {
 		GenericDatumReader<GenericRecord> gdr = new GenericDatumReader<GenericRecord>(topicSchema);
 
 		BinaryDecoder binaryDecoder = DecoderFactory.get().binaryDecoder(message.getPayload(), null);
-		return gdr.read(null, binaryDecoder);
+		GenericRecord record = gdr.read(null, binaryDecoder);
+		record.put(SchemaRepositoryUtil.KAFKA_OFFSET, message.getOffset());
+		return record;
 	}
 }

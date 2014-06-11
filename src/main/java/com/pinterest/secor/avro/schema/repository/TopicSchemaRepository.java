@@ -25,7 +25,7 @@ public class TopicSchemaRepository extends SchemaRepository {
 		Schema schema = SchemaBuilder.record("TestData")
 				.namespace("com.webengage.avro_test")
 				.fields()
-				.name("kafka_offset").type().optional().longType()
+				.name(SchemaRepositoryUtil.KAFKA_OFFSET).type().optional().longType()
 				.name("license").type().optional().stringType()
 				.name("date").type().optional().stringType()
 				.name("message").type().optional().stringType()
