@@ -42,4 +42,21 @@ public class ReflectionUtil {
         }
         throw new IllegalArgumentException("Class not found " + className);
     }
+
+	public static Object initializeKlass(String className,
+	                                     SecorConfig config) throws Exception {
+		Class<?> clazz = Class.forName(className);
+
+		// Search for an "appropriate" constructor.
+		for (Constructor<?> ctor : clazz.getConstructors()) {
+			Class<?>[] paramTypes = ctor.getParameterTypes();
+
+			// If the arity matches, let's use it.
+			if (paramTypes.length == 1) {
+				Object[] args = {config};
+				return ctor.newInstance(args);
+			}
+		}
+		throw new IllegalArgumentException("Class not found " + className);
+	}
 }

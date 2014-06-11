@@ -164,4 +164,13 @@ public class SecorConfig {
     private String[] getStringArray(String name) {
         return mProperties.getStringArray(name);
     }
+
+	public String getTopicAvroSchemaRepositoryClass() {
+		return getString("secor.topic.avro.schema.repository");
+	}
+
+	public String getTopicPartitionSchemaRepositoryClass() {
+		return getString("secor.topic.partition.repository");
+	}
+
 }

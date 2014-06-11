@@ -16,6 +16,8 @@
  */
 package com.pinterest.secor.main;
 
+import com.pinterest.secor.partition.repository.PartitionRepositoryUtil;
+import com.pinterest.secor.avro.schema.repository.SchemaRepositoryUtil;
 import com.pinterest.secor.common.OstrichAdminService;
 import com.pinterest.secor.common.SecorConfig;
 import com.pinterest.secor.consumer.Consumer;
@@ -51,6 +53,13 @@ public class ConsumerMain {
         }
         try {
             SecorConfig config = SecorConfig.load();
+
+	        //Initializing schema repository
+	        SchemaRepositoryUtil.init(config);
+
+	        //Initializing partition repository
+	        PartitionRepositoryUtil.init(config);
+
             OstrichAdminService ostrichService = new OstrichAdminService(config.getOstrichPort());
             ostrichService.start();
             FileUtil.configure(config);

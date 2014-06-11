@@ -16,6 +16,7 @@
  */
 package com.pinterest.secor.uploader;
 
+import com.pinterest.secor.avro.schema.repository.SchemaRepositoryUtil;
 import com.pinterest.secor.common.*;
 import com.pinterest.secor.common.SecorConfig;
 import com.pinterest.secor.util.FileUtil;
@@ -109,9 +110,10 @@ public class Uploader {
      */
     protected DataFileReader createReader(LogFilePath logFilePath) throws IOException {
 
-	    Schema schema = new Schema.Parser().parse(FileRegistry.SCHEMA);
-	    DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>(schema);
-	    DataFileReader<GenericRecord> dataFileReader = new DataFileReader<GenericRecord>(new File(logFilePath.getLogFilePath()), datumReader);
+	    DatumReader<GenericRecord> datumReader =
+			    new GenericDatumReader<GenericRecord>(SchemaRepositoryUtil.getTopicSchema(logFilePath.getTopic()));
+	    DataFileReader<GenericRecord> dataFileReader =
+			    new DataFileReader<GenericRecord>(new File(logFilePath.getLogFilePath()), datumReader);
         return dataFileReader;
     }
 

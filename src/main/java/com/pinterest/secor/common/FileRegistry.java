@@ -16,6 +16,7 @@
  */
 package com.pinterest.secor.common;
 
+import com.pinterest.secor.avro.schema.repository.SchemaRepositoryUtil;
 import com.pinterest.secor.util.FileUtil;
 import com.pinterest.secor.util.StatsUtil;
 import org.apache.avro.Schema;
@@ -49,17 +50,6 @@ public class FileRegistry {
     private HashMap<TopicPartition, HashSet<LogFilePath>> mFiles;
     private HashMap<LogFilePath, DataFileWriter> mWriters;
     private HashMap<LogFilePath, Long> mCreationTimes;
-
-	public static final String SCHEMA = "{\"namespace\": \"example.avro\",\n" +
-			" \"type\": \"record\",\n" +
-			" \"name\": \"User\",\n" +
-			" \"fields\": [\n" +
-			"     {\"name\": \"name\", \"type\": \"string\"},\n" +
-			"     {\"name\": \"favorite_number\",  \"type\": [\"int\", \"null\"]},\n" +
-			"     {\"name\": \"favorite_color\", \"type\": [\"string\", \"null\"]}\n" +
-			" ]\n" +
-			"}\n" +
-			" ";
 
     public FileRegistry() {
         mFiles = new HashMap<TopicPartition, HashSet<LogFilePath>>();
@@ -114,8 +104,9 @@ public class FileRegistry {
             }
 
 	        File file = new File(path.getLogFilePath());
-	        Schema schema = new Schema.Parser().parse(SCHEMA);
-	        DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<GenericRecord>(schema);
+	        Schema schema = SchemaRepositoryUtil.getTopicSchema(path.getTopic());
+	        DatumWriter<GenericRecord> datumWriter =
+			        new GenericDatumWriter<GenericRecord>(schema);
 	        writer = new DataFileWriter<GenericRecord>(datumWriter);
 
             if (!files.contains(path)) {
