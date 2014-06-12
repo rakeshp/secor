@@ -22,6 +22,7 @@ public class TopicPartitionRepository extends PartitionRepository {
 	public void init() {
 		repository = new HashMap<String, List<String>>();
 		repository.put("avro_test_2", Arrays.asList("license", "date"));
+		repository.put("avro_test_2__1", Arrays.asList("license", "date"));
 	}
 
 	@Override

@@ -31,6 +31,8 @@ public class TopicSchemaRepository extends SchemaRepository {
 				.name("message").type().optional().stringType()
 				.endRecord();
 		repository.put("avro_test_2", schema);
+		repository.put("avro_test_2__1", schema);
+
 	}
 
 	@Override

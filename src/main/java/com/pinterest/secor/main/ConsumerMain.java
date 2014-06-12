@@ -21,6 +21,7 @@ import com.pinterest.secor.avro.schema.repository.SchemaRepositoryUtil;
 import com.pinterest.secor.common.OstrichAdminService;
 import com.pinterest.secor.common.SecorConfig;
 import com.pinterest.secor.consumer.Consumer;
+import com.pinterest.secor.uploader.path.PathGeneratorUtil;
 import com.pinterest.secor.util.FileUtil;
 import com.pinterest.secor.util.RateLimitUtil;
 import org.slf4j.Logger;
@@ -59,6 +60,9 @@ public class ConsumerMain {
 
 	        //Initializing partition repository
 	        PartitionRepositoryUtil.init(config);
+
+	        //Initializing upload path generator
+	        PathGeneratorUtil.init(config);
 
             OstrichAdminService ostrichService = new OstrichAdminService(config.getOstrichPort());
             ostrichService.start();

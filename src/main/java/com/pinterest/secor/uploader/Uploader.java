@@ -18,6 +18,7 @@ package com.pinterest.secor.uploader;
 
 import com.pinterest.secor.avro.schema.repository.SchemaRepositoryUtil;
 import com.pinterest.secor.common.*;
+import com.pinterest.secor.uploader.path.PathGeneratorUtil;
 import com.pinterest.secor.util.FileUtil;
 import com.pinterest.secor.util.IdUtil;
 import org.apache.avro.file.DataFileReader;
@@ -67,8 +68,9 @@ public class Uploader {
                                              localPath.getKafkaPartition(),
                                              localPath.getOffset());
         String localLogFilename = localPath.getLogFilePath();
-        LOG.info("uploading file " + localLogFilename + " to " + s3Path.getLogFilePath());
-        FileUtil.moveToS3(localLogFilename, s3Path.getLogFilePath());
+	    String s3LogFilePath = PathGeneratorUtil.generateUploadPath(s3Path);
+        LOG.info("uploading file " + localLogFilename + " to " + s3LogFilePath);
+        FileUtil.moveToS3(localLogFilename, s3LogFilePath);
     }
 
     private void uploadFiles(TopicPartition topicPartition) throws Exception {

@@ -201,4 +201,9 @@ public class LogFilePath {
     public String toString() {
         return getLogFilePath();
     }
+
+
+	public String getPrefix() {
+		return mPrefix;
+	}
 }

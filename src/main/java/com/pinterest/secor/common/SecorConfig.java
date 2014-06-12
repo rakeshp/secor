@@ -173,4 +173,8 @@ public class SecorConfig {
 		return getString("secor.topic.partition.repository");
 	}
 
+	public String getUploadPathGeneratorClass() {
+		return getString("secor.topic.upload.path.generator.class");
+	}
+
 }
