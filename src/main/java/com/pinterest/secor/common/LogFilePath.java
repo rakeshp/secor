@@ -48,6 +48,7 @@ public class LogFilePath {
     private int mGeneration;
     private int mKafkaPartition;
     private long mOffset;
+	private int hashCode = -1;
 
     public LogFilePath(String prefix, int generation, long lastCommittedOffset,
                        ParsedMessage message) {
@@ -171,30 +172,33 @@ public class LogFilePath {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+	    if (this == o) return true;
+	    if (o == null || getClass() != o.getClass()) return false;
 
-        LogFilePath that = (LogFilePath) o;
+	    LogFilePath that = (LogFilePath) o;
 
-        if (mGeneration != that.mGeneration) return false;
-        if (mKafkaPartition != that.mKafkaPartition) return false;
-        if (mOffset != that.mOffset) return false;
-        if (!Arrays.equals(mPartitions, that.mPartitions)) return false;
-        if (mPrefix != null ? !mPrefix.equals(that.mPrefix) : that.mPrefix != null) return false;
-        if (mTopic != null ? !mTopic.equals(that.mTopic) : that.mTopic != null) return false;
+	    return mGeneration == that.mGeneration
+			    && mKafkaPartition == that.mKafkaPartition
+			    && mOffset == that.mOffset
+			    && !(mPrefix != null ? !mPrefix.equals(that.mPrefix) : that.mPrefix != null)
+			    && !(mTopic != null ? !mTopic.equals(that.mTopic) : that.mTopic != null)
+			    && Arrays.equals(mPartitions, that.mPartitions);
 
-        return true;
     }
 
     @Override
     public int hashCode() {
-        int result = mPrefix != null ? mPrefix.hashCode() : 0;
-        result = 31 * result + (mTopic != null ? mTopic.hashCode() : 0);
-        result = 31 * result + (mPartitions != null ? Arrays.hashCode(mPartitions) : 0);
-        result = 31 * result + mGeneration;
-        result = 31 * result + mKafkaPartition;
-        result = 31 * result + (int) (mOffset ^ (mOffset >>> 32));
-        return result;
+	    if (hashCode != -1) {
+		    return hashCode;
+	    } else {
+		    int result = mPrefix != null ? mPrefix.hashCode() : 0;
+		    result = 31 * result + (mTopic != null ? mTopic.hashCode() : 0);
+		    result = 31 * result + (mPartitions != null ? Arrays.hashCode(mPartitions) : 0);
+		    result = 31 * result + mGeneration;
+		    result = 31 * result + mKafkaPartition;
+		    result = 31 * result + (int) (mOffset ^ (mOffset >>> 32));
+		    return result;
+	    }
     }
 
     @Override
