@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * FileRegistry keeps track of local log files currently being appended to and the associated
@@ -48,14 +49,14 @@ import java.util.*;
 public class FileRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(FileRegistry.class);
 
-    private HashMap<TopicPartition, HashSet<LogFilePath>> mFiles;
-    private HashMap<LogFilePath, DataFileWriter> mWriters;
-    private HashMap<LogFilePath, Long> mCreationTimes;
+    private Map<TopicPartition, HashSet<LogFilePath>> mFiles;
+    private Map<LogFilePath, DataFileWriter> mWriters;
+    private Map<LogFilePath, Long> mCreationTimes;
 
     public FileRegistry() {
-        mFiles = new HashMap<TopicPartition, HashSet<LogFilePath>>();
-        mWriters = new HashMap<LogFilePath, DataFileWriter>();
-        mCreationTimes = new HashMap<LogFilePath, Long>();
+        mFiles = new ConcurrentHashMap<TopicPartition, HashSet<LogFilePath>>(1000);
+        mWriters = new ConcurrentHashMap<LogFilePath, DataFileWriter>(1000);
+        mCreationTimes = new ConcurrentHashMap<LogFilePath, Long>(1000);
     }
 
     /**
