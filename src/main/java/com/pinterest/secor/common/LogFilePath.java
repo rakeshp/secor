@@ -197,6 +197,7 @@ public class LogFilePath {
 		    result = 31 * result + mGeneration;
 		    result = 31 * result + mKafkaPartition;
 		    result = 31 * result + (int) (mOffset ^ (mOffset >>> 32));
+		    hashCode = result;
 		    return result;
 	    }
     }
