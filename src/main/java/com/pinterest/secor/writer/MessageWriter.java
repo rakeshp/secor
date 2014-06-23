@@ -16,6 +16,7 @@
  */
 package com.pinterest.secor.writer;
 
+import com.pinterest.secor.avro.AvroDataFileWriter;
 import com.pinterest.secor.avro.schema.repository.SchemaRepositoryUtil;
 import com.pinterest.secor.common.*;
 import com.pinterest.secor.common.SecorConfig;
@@ -79,8 +80,9 @@ public class MessageWriter {
         long offset = mOffsetTracker.getAdjustedCommittedOffsetCount(topicPartition);
         String localPrefix = mConfig.getLocalPath() + '/' + IdUtil.getLocalMessageDir();
         LogFilePath path = new LogFilePath(localPrefix, mConfig.getGeneration(), offset, message);
-        DataFileWriter writer = mFileRegistry.getOrCreateWriter(path);
-        writer.append(createRecord(message));
+        AvroDataFileWriter writer = (AvroDataFileWriter) mFileRegistry.getOrCreateWriter(path);
+	    GenericRecord record = createRecord(message);
+	    writer.append(record, message.getPayload().length);
         //LOG.debug("appended message " + message + " to file " + path.getLogFilePath() +
         //          ".  File length " + writer.getLength());
     }

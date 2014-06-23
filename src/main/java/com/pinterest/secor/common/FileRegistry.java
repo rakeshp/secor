@@ -16,6 +16,7 @@
  */
 package com.pinterest.secor.common;
 
+import com.pinterest.secor.avro.AvroDataFileWriter;
 import com.pinterest.secor.avro.schema.repository.SchemaRepositoryUtil;
 import com.pinterest.secor.util.FileUtil;
 import com.pinterest.secor.util.StatsUtil;
@@ -107,14 +108,15 @@ public class FileRegistry {
 	        Schema schema = SchemaRepositoryUtil.getTopicSchema(path.getTopic());
 	        DatumWriter<GenericRecord> datumWriter =
 			        new GenericDatumWriter<GenericRecord>(schema);
-	        writer = new DataFileWriter<GenericRecord>(datumWriter);
 
             if (!files.contains(path)) {
                 files.add(path);
 	            file.getParentFile().mkdirs();
 	            file.createNewFile();
+	            writer = new AvroDataFileWriter(datumWriter, 0);
 	            writer.create(schema, file);
             } else {
+	            writer = new AvroDataFileWriter(datumWriter, file.length());
 	            writer.appendTo(file);
             }
 
@@ -206,10 +208,10 @@ public class FileRegistry {
         Collection<LogFilePath> paths = getPaths(topicPartition);
         long result = 0;
         for (LogFilePath path : paths) {
-	        File f = new File(path.getLogFilePath());
-            if (f.exists()) {
-                result += f.length();
-            }
+	        AvroDataFileWriter dataFileWriter = (AvroDataFileWriter) mWriters.get(path);
+	        if (dataFileWriter != null) {
+		        result += dataFileWriter.getLength();
+	        }
         }
         StatsUtil.setLabel("secor.size." + topicPartition.getTopic() + "." +
                            topicPartition.getPartition(), Long.toString(result));
