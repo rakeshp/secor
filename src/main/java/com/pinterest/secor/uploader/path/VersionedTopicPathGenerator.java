@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
  * Created by rakesh on 11/06/14.
  */
 public class VersionedTopicPathGenerator extends PathGenerator {
-	private static final Pattern TOPIC_PATTERN = Pattern.compile("(.*)__(.*)$");
+	private static final Pattern TOPIC_PATTERN = Pattern.compile("(.*)_(.*)$");
 
 	public VersionedTopicPathGenerator(SecorConfig config) {
 		super(config);
