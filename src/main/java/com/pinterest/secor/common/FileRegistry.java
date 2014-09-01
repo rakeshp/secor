@@ -21,6 +21,7 @@ import com.pinterest.secor.avro.schema.repository.SchemaRepositoryUtil;
 import com.pinterest.secor.util.FileUtil;
 import com.pinterest.secor.util.StatsUtil;
 import org.apache.avro.Schema;
+import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
@@ -115,9 +116,11 @@ public class FileRegistry {
 	            file.getParentFile().mkdirs();
 	            file.createNewFile();
 	            writer = new AvroDataFileWriter(datumWriter, 0);
+	            writer.setCodec(CodecFactory.fromString("snappy"));
 	            writer.create(schema, file);
             } else {
 	            writer = new AvroDataFileWriter(datumWriter, file.length());
+	            writer.setCodec(CodecFactory.fromString("snappy"));
 	            writer.appendTo(file);
             }
 
