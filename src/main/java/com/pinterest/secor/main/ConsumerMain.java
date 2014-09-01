@@ -22,6 +22,7 @@ import com.pinterest.secor.common.OstrichAdminService;
 import com.pinterest.secor.common.SecorConfig;
 import com.pinterest.secor.consumer.Consumer;
 import com.pinterest.secor.uploader.path.PathGeneratorUtil;
+import com.pinterest.secor.tools.LogFileDeleter;
 import com.pinterest.secor.util.FileUtil;
 import com.pinterest.secor.util.RateLimitUtil;
 import org.slf4j.Logger;
@@ -67,6 +68,10 @@ public class ConsumerMain {
             OstrichAdminService ostrichService = new OstrichAdminService(config.getOstrichPort());
             ostrichService.start();
             FileUtil.configure(config);
+
+            LogFileDeleter logFileDeleter = new LogFileDeleter(config);
+            logFileDeleter.deleteOldLogs();
+
             RateLimitUtil.configure(config);
             Thread.UncaughtExceptionHandler handler = new Thread.UncaughtExceptionHandler() {
                 public void uncaughtException(Thread thread, Throwable exception) {

@@ -32,10 +32,12 @@ import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.DecoderFactory;
+import com.pinterest.secor.util.ReflectionUtil;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.compress.CompressionCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,12 +52,22 @@ public class MessageWriter {
     private SecorConfig mConfig;
     private OffsetTracker mOffsetTracker;
     private FileRegistry mFileRegistry;
+    private String mFileExtension;
+    private String mCodec;
+    private String mLocalPrefix;
 
     public MessageWriter(SecorConfig config, OffsetTracker offsetTracker,
-                         FileRegistry fileRegistry) {
+                         FileRegistry fileRegistry) throws Exception {
         mConfig = config;
         mOffsetTracker = offsetTracker;
         mFileRegistry = fileRegistry;
+        if (mConfig.getCompressionCodec() != null && !mConfig.getCompressionCodec().isEmpty()) {
+            mCodec = mConfig.getCompressionCodec();
+            mFileExtension = "";
+        } else {
+            mFileExtension = "";
+        }
+        mLocalPrefix = mConfig.getLocalPath() + '/' + IdUtil.getLocalMessageDir();
     }
 
     private void adjustOffset(ParsedMessage message) throws IOException {
@@ -79,8 +91,8 @@ public class MessageWriter {
                                                            message.getKafkaPartition());
         long offset = mOffsetTracker.getAdjustedCommittedOffsetCount(topicPartition);
         String localPrefix = mConfig.getLocalPath() + '/' + IdUtil.getLocalMessageDir();
-        LogFilePath path = new LogFilePath(localPrefix, mConfig.getGeneration(), offset, message);
-        AvroDataFileWriter writer = (AvroDataFileWriter) mFileRegistry.getOrCreateWriter(path);
+        LogFilePath path = new LogFilePath(localPrefix, mConfig.getGeneration(), offset, message, mFileExtension);
+        AvroDataFileWriter writer = (AvroDataFileWriter) mFileRegistry.getOrCreateWriter(path, mCodec);
 	    GenericRecord record = createRecord(message);
 	    writer.append(record, message.getPayload().length);
         //LOG.debug("appended message " + message + " to file " + path.getLogFilePath() +

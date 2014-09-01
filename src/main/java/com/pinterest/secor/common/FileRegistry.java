@@ -26,19 +26,15 @@ import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -89,10 +85,11 @@ public class FileRegistry {
     /**
      * Retrieve a writer for a given path or create a new one if it does not exist.
      * @param path The path to retrieve writer for.
+     * @param codec Optional compression codec.
      * @return Writer for a given path.
      * @throws IOException
      */
-    public DataFileWriter getOrCreateWriter(LogFilePath path) throws IOException {
+    public DataFileWriter getOrCreateWriter(LogFilePath path, String codec) throws IOException {
 	    DataFileWriter writer = mWriters.get(path);
         if (writer == null) {
             // Just in case.
@@ -116,11 +113,15 @@ public class FileRegistry {
 	            file.getParentFile().mkdirs();
 	            file.createNewFile();
 	            writer = new AvroDataFileWriter(datumWriter, 0);
-	            writer.setCodec(CodecFactory.fromString("snappy"));
+	            if (codec != null) {
+		            writer.setCodec(CodecFactory.fromString(codec));
+	            }
 	            writer.create(schema, file);
             } else {
 	            writer = new AvroDataFileWriter(datumWriter, file.length());
-	            writer.setCodec(CodecFactory.fromString("snappy"));
+	            if (codec != null) {
+		            writer.setCodec(CodecFactory.fromString(codec));
+	            }
 	            writer.appendTo(file);
             }
 

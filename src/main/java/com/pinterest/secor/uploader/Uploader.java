@@ -26,6 +26,12 @@ import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
+import com.pinterest.secor.util.ReflectionUtil;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.io.compress.CompressionCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +72,8 @@ public class Uploader {
                                              localPath.getPartitions(),
                                              localPath.getGeneration(),
                                              localPath.getKafkaPartition(),
-                                             localPath.getOffset());
+                                             localPath.getOffset(),
+                                             localPath.getExtension());
         String localLogFilename = localPath.getLogFilePath();
 	    String s3LogFilePath = PathGeneratorUtil.generateUploadPath(s3Path);
         LOG.info("uploading file " + localLogFilename + " to " + s3LogFilePath);
@@ -124,6 +131,12 @@ public class Uploader {
 	    mFileRegistry.deleteWriter(srcPath);
 	    try {
 		    reader = createReader(srcPath);
+		    String codec = null;
+		    String extension = "";
+		    if (mConfig.getCompressionCodec() != null && !mConfig.getCompressionCodec().isEmpty()) {
+			    codec = mConfig.getCompressionCodec();
+			    extension = "";
+		    }
 		    while (reader.hasNext()) {
 			    GenericRecord value = (GenericRecord) reader.next();
 			    Long messageOffset = (Long) value.get(SchemaRepositoryUtil.KAFKA_OFFSET);
@@ -133,8 +146,8 @@ public class Uploader {
 							    IdUtil.getLocalMessageDir();
 					    dstPath = new LogFilePath(localPrefix, srcPath.getTopic(),
 							    srcPath.getPartitions(), srcPath.getGeneration(),
-							    srcPath.getKafkaPartition(), startOffset);
-					    writer = mFileRegistry.getOrCreateWriter(dstPath);
+							    srcPath.getKafkaPartition(), startOffset, extension);
+					    writer = mFileRegistry.getOrCreateWriter(dstPath, codec);
 				    }
 				    writer.append(value);
 				    copiedMessages++;
